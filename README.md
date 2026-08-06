@@ -1,10 +1,10 @@
 # Agentic Self-Correcting RAG
 
 [!\[CI](https://github.com/hejerr/agentic-rag/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR-USERNAME/agentic-rag/actions/workflows/ci.yml)
-[!\[Live Demo](https://img.shields.io/badge/demo-live-brightgreen)](https://YOUR-APP-NAME.streamlit.app)
+[!\[Live Demo](https://img.shields.io/badge/demo-live-brightgreen)](https://agentic-rag.streamlit.app)
 [!\[License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-[**Try the live demo →**](https://YOUR-APP-NAME.streamlit.app) *(replace with your deployed URL — see* [*Deployment*](#deployment)*)*
+[**Try the live demo →**](https://agentic-rag.streamlit.app) *(replace with your deployed URL — see* [*Deployment*](#deployment)*)*
 
 A Retrieval-Augmented Generation system where retrieval and generation are
 wrapped in an explicit **agent graph** that grades its own retrieval quality,
