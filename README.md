@@ -1,10 +1,7 @@
 # Agentic Self-Correcting RAG
 
-[!\[CI](https://github.com/hejerr/agentic-rag/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR-USERNAME/agentic-rag/actions/workflows/ci.yml)
-[!\[Live Demo](https://img.shields.io/badge/demo-live-brightgreen)](https://YOUR-APP-NAME.streamlit.app)
-[!\[License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
-
-[**Try the live demo →**](https://YOUR-APP-NAME.streamlit.app) *(replace with your deployed URL — see* [*Deployment*](#deployment)*)*
+[![CI](https://github.com/hejerr/agentic-rag/actions/workflows/ci.yml/badge.svg)](https://github.com/hejerr/agentic-rag/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 A Retrieval-Augmented Generation system where retrieval and generation are
 wrapped in an explicit **agent graph** that grades its own retrieval quality,
@@ -16,6 +13,10 @@ Built on the ideas behind **Corrective RAG (CRAG)** and **Self-RAG**, orchestrat
 as a [LangGraph](https://github.com/langchain-ai/langgraph) state machine, with
 a real evaluation harness comparing it against a naive baseline instead of
 just asserting it's better.
+
+![Demo screenshot](docs/demo-screenshot.png)
+*Streamlit UI showing the agent's full trace — routing, retrieval grading, query
+rewrites, and self-critique — alongside the answer, run locally.*
 
 ## Why this exists
 
@@ -36,7 +37,7 @@ architecture, not an afterthought.
                      ┌──────────►│   direct   ├──────────────┐
                      │           └────────────┘              │
         ┌────────┐   │           ┌────────────┐              │
-   ──►  │ route  ├───┼──────────►│out\_of\_scope├──────────────┤
+   ──►  │ route  ├───┼──────────►│out_of_scope├──────────────┤
         └────────┘   │           └────────────┘              │
                      │           ┌────────────┐               ▼
                      └──────────►│  retrieve  │           ┌────────┐
@@ -44,17 +45,17 @@ architecture, not an afterthought.
                                        │                  └────────┘
                                        ▼                       ▲
                               ┌────────────────┐               │
-                              │ grade\_documents│               │
+                              │ grade_documents│               │
                               └───────┬────────┘               │
-                     enough relevant? │  not enough \& retries left
+                     enough relevant? │  not enough & retries left
                         │             ▼                        │
                         │     ┌────────────────┐                │
-                        │     │ transform\_query├──► retrieve    │
+                        │     │ transform_query├──► retrieve    │
                         │     └────────────────┘  (bounded loop)│
-                        │     not enough \& no retries left      │
+                        │     not enough & no retries left      │
                         │             ▼                         │
                         │     ┌────────────────┐                │
-                        │     │   web\_search   │                │
+                        │     │   web_search   │                │
                         │     └───────┬────────┘                │
                         ▼             ▼                          │
                               ┌────────────────┐                 │
@@ -62,39 +63,39 @@ architecture, not an afterthought.
                               └───────┬────────┘   regenerate    │
                                       ▼             (bounded)    │
                               ┌────────────────┐                 │
-                              │grade\_generation│                 │
+                              │grade_generation│                 │
                               └───────┬────────┘                 │
-                     passed ──────────┼────────── failed \& retries left
+                     passed ──────────┼────────── failed & retries left
                         │             │                     │
                         ▼             │                     ▼
-                    finalize ◄────────┘          finalize\_with\_caveat
+                    finalize ◄────────┘          finalize_with_caveat
                         │                                   │
                         └───────────────► END ◄─────────────┘
 ```
 
 **Design decisions worth calling out:**
 
-* **Routing before retrieval.** Not every question needs the corpus — a
-cheap classification step decides between `retrieve`, `direct` (general
-knowledge), and `out\_of\_scope` (decline rather than hallucinate from an
-irrelevant corpus).
-* **Retrieval grading (CRAG).** Each retrieved chunk is graded for relevance
-by a separate LLM call rather than trusting embedding similarity alone.
-Low aggregate relevance triggers query rewriting first (cheap), and falls
-back to web search only after rewrites are exhausted (CRAG's actual
-fallback strategy).
-* **Generation self-critique (Self-RAG).** After generation, groundedness
-(is every claim supported by the retrieved context?) and answer relevance
-(does the answer address what was asked?) are checked **independently**,
-because a response can be grounded-but-off-topic or relevant-but-hallucinated.
-* **Bounded retry loops.** Both the retrieval-correction loop and the
-generation-correction loop have a hard retry ceiling (`RAG\_MAX\_REWRITES`,
-`RAG\_MAX\_GEN\_RETRIES`) so a stubborn failure degrades to a clearly-labeled
-best-effort answer instead of looping forever.
-* **Pluggable, swappable embeddings.** Defaults to a local TF-IDF + SVD
-embedder (zero downloads, works fully offline, good enough to demo and
-test with) with a one-line swap to `sentence-transformers` for real
-semantic retrieval quality — see [Embeddings](#embedding-backends).
+- **Routing before retrieval.** Not every question needs the corpus — a
+  cheap classification step decides between `retrieve`, `direct` (general
+  knowledge), and `out_of_scope` (decline rather than hallucinate from an
+  irrelevant corpus).
+- **Retrieval grading (CRAG).** Each retrieved chunk is graded for relevance
+  by a separate LLM call rather than trusting embedding similarity alone.
+  Low aggregate relevance triggers query rewriting first (cheap), and falls
+  back to web search only after rewrites are exhausted (CRAG's actual
+  fallback strategy).
+- **Generation self-critique (Self-RAG).** After generation, groundedness
+  (is every claim supported by the retrieved context?) and answer relevance
+  (does the answer address what was asked?) are checked **independently**,
+  because a response can be grounded-but-off-topic or relevant-but-hallucinated.
+- **Bounded retry loops.** Both the retrieval-correction loop and the
+  generation-correction loop have a hard retry ceiling (`RAG_MAX_REWRITES`,
+  `RAG_MAX_GEN_RETRIES`) so a stubborn failure degrades to a clearly-labeled
+  best-effort answer instead of looping forever.
+- **Pluggable, swappable embeddings.** Defaults to a local TF-IDF + SVD
+  embedder (zero downloads, works fully offline, good enough to demo and
+  test with) with a one-line swap to `sentence-transformers` for real
+  semantic retrieval quality — see [Embeddings](#embedding-backends).
 
 ## Project structure
 
@@ -108,13 +109,13 @@ src/
   agent/         LangGraph state, nodes, and graph wiring
   evaluation/    metrics + naive baseline for comparison
   cli.py         command-line interface
-  llm\_client.py  thin Anthropic API wrapper
+  llm_client.py  thin Anthropic API wrapper
 data/
-  sample\_docs/       small hand-written knowledge base (RAG/embeddings/agents)
-  eval\_dataset.json  QA pairs with expected source docs, for evaluation
+  sample_docs/       small hand-written knowledge base (RAG/embeddings/agents)
+  eval_dataset.json  QA pairs with expected source docs, for evaluation
 scripts/
   ingest.py      build the vector store
-  run\_eval.py    run the naive-vs-agentic evaluation harness
+  run_eval.py    run the naive-vs-agentic evaluation harness
 tests/           offline-safe unit + integration tests (LLM calls mocked)
 app.py           Streamlit demo UI
 ```
@@ -124,12 +125,12 @@ app.py           Streamlit demo UI
 ```bash
 git clone <this-repo>
 cd agentic-rag
-python -m venv .venv \&\& source .venv/bin/activate   # or your tool of choice
+python -m venv .venv && source .venv/bin/activate   # or your tool of choice
 pip install -r requirements.txt
 
 cp .env.example .env
-# edit .env and set GROQ\_API\_KEY=... (free key: https://console.groq.com/keys)
-# (or set RAG\_LLM\_PROVIDER=anthropic and ANTHROPIC\_API\_KEY=sk-ant-... to use Claude instead)
+# edit .env and set GROQ_API_KEY=... (free key: https://console.groq.com/keys)
+# (or set RAG_LLM_PROVIDER=anthropic and ANTHROPIC_API_KEY=sk-ant-... to use Claude instead)
 
 python -m scripts.ingest --rebuild   # builds the vector store, no API key needed
 ```
@@ -137,7 +138,6 @@ python -m scripts.ingest --rebuild   # builds the vector store, no API key neede
 ## Usage
 
 **CLI:**
-
 ```bash
 python -m src.cli "What three actions can Corrective RAG take based on retrieval confidence?"
 python -m src.cli --interactive
@@ -145,88 +145,83 @@ python -m src.cli --interactive
 
 **Streamlit demo** (shows the full agent trace, retrieved context, and
 groundedness/relevance verdicts alongside the answer):
-
 ```bash
 streamlit run app.py
 ```
 
 **As a library:**
-
 ```python
-from src.agent.graph import run\_agent
+from src.agent.graph import run_agent
 
-state = run\_agent("How does chunk overlap affect retrieval quality?")
-print(state\["answer"])
-print(state\["trace"])          # every decision the agent made, in order
-print(state\["relevant\_chunks"]) # the context actually used, with sources
+state = run_agent("How does chunk overlap affect retrieval quality?")
+print(state["answer"])
+print(state["trace"])          # every decision the agent made, in order
+print(state["relevant_chunks"]) # the context actually used, with sources
 ```
 
-## Deployment
+## Deployment (optional)
 
-The Streamlit demo (`app.py`) deploys for free on
-[Streamlit Community Cloud](https://share.streamlit.io) and builds its vector
-store automatically on first load — no manual ingestion step needed after
-deploying.
+The demo runs locally via `streamlit run app.py` (see [Usage](#usage) above).
+It's also set up to deploy for free on
+[Streamlit Community Cloud](https://share.streamlit.io) if you want a public
+link to share — the vector store builds itself automatically on first load,
+so no manual ingestion step is needed after deploying.
 
 1. Push this repo to your own GitHub account (see [Setup](#setup) below if
-you haven't yet).
+   you haven't yet).
 2. Go to [share.streamlit.io](https://share.streamlit.io) and sign in with
-GitHub.
+   GitHub.
 3. Click **"New app"**, select this repo, set the main file path to `app.py`.
 4. Before deploying, open **"Advanced settings" → Secrets** and add:
-
-```toml
-   RAG\_LLM\_PROVIDER = "groq"
-   GROQ\_API\_KEY = "your-groq-key"
+   ```toml
+   RAG_LLM_PROVIDER = "groq"
+   GROQ_API_KEY = "your-groq-key"
    ```
-
 5. Click **Deploy**. First load will take a minute to install dependencies
-and build the vector store; after that it's fast.
-6. Copy the resulting `https://your-app-name.streamlit.app` URL into the
-badge and link at the top of this README.
+   and build the vector store; after that it's fast.
 
 ## Evaluation
 
-`scripts/run\_eval.py` runs every question in `data/eval\_dataset.json` through
+`scripts/run_eval.py` runs every question in `data/eval_dataset.json` through
 **both** a naive single-pass RAG baseline and the full agentic pipeline, and
 scores both on:
 
-* **Retrieval precision/recall@k** against known expected source documents
-* **Groundedness** (LLM-as-judge: is the answer supported by retrieved context?)
-* **Answer relevance** (LLM-as-judge: does the answer address the question?)
+- **Retrieval precision/recall@k** against known expected source documents
+- **Groundedness** (LLM-as-judge: is the answer supported by retrieved context?)
+- **Answer relevance** (LLM-as-judge: does the answer address the question?)
 
 ```bash
-python -m scripts.run\_eval
+python -m scripts.run_eval
 ```
 
-This writes `eval\_results/results.md` (summary table) and
-`eval\_results/results.json` (full per-question detail, including agent
-traces). Requires an LLM provider key to be set (`GROQ\_API\_KEY` or
-`ANTHROPIC\_API\_KEY`, matching `RAG\_LLM\_PROVIDER`), since every metric here
+This writes `eval_results/results.md` (summary table) and
+`eval_results/results.json` (full per-question detail, including agent
+traces). Requires an LLM provider key to be set (`GROQ_API_KEY` or
+`ANTHROPIC_API_KEY`, matching `RAG_LLM_PROVIDER`), since every metric here
 depends on an LLM call. Run it yourself and commit the resulting
-`eval\_results/` to your fork — that comparison table is the single most
+`eval_results/` to your fork — that comparison table is the single most
 convincing part of this repo for a reader deciding whether the "agentic"
 part actually does anything.
 
 ## LLM providers
 
-|Provider|Setup|Cost|
-|-|-|-|
-|`groq` (default)|free key at [console.groq.com/keys](https://console.groq.com/keys)|free tier (rate-limited)|
-|`anthropic`|key at [console.anthropic.com](https://console.anthropic.com)|pay-per-use|
+| Provider | Setup | Cost |
+|---|---|---|
+| `groq` (default) | free key at [console.groq.com/keys](https://console.groq.com/keys) | free tier (rate-limited) |
+| `anthropic` | key at [console.anthropic.com](https://console.anthropic.com) | pay-per-use |
 
-Switch via `RAG\_LLM\_PROVIDER` in `.env`. Every node in the agent graph calls
-the same `complete()` / `complete\_json()` functions in `src/llm\_client.py`
+Switch via `RAG_LLM_PROVIDER` in `.env`. Every node in the agent graph calls
+the same `complete()` / `complete_json()` functions in `src/llm_client.py`
 regardless of provider, so swapping is a config change, not a code change.
 
 ## Embedding backends
 
-|Backend|Setup|Quality|Use case|
-|-|-|-|-|
-|`tfidf` (default)|none, pure local|lexical, decent|demos, CI, offline dev|
-|`st` (sentence-transformers)|`pip install sentence-transformers`, internet on first run|dense, semantic|real use|
+| Backend | Setup | Quality | Use case |
+|---|---|---|---|
+| `tfidf` (default) | none, pure local | lexical, decent | demos, CI, offline dev |
+| `st` (sentence-transformers) | `pip install sentence-transformers`, internet on first run | dense, semantic | real use |
 
-Switch via `RAG\_EMBEDDING\_BACKEND=st` in `.env`.
+Switch via `RAG_EMBEDDING_BACKEND=st` in `.env`.
 
 ## Testing
 
@@ -244,16 +239,15 @@ that control flow, not model output quality, is what this project is about.
 
 ## What this project deliberately does not do
 
-* No re-ranking model (a cross-encoder reranker after retrieval is a natural
-next addition, and is called out as future work rather than pretending
-simple top-k cosine search is sufficient for production).
-* No persistence of conversation history / multi-turn memory — this is a
-single-turn RAG agent, not a chat agent.
-* The web search fallback (`ddgs`) is a best-effort, no-API-key-required
-choice; swap in Tavily/Serper/Bing in `src/tools/web\_search.py` for
-production-grade fallback quality.
+- No re-ranking model (a cross-encoder reranker after retrieval is a natural
+  next addition, and is called out as future work rather than pretending
+  simple top-k cosine search is sufficient for production).
+- No persistence of conversation history / multi-turn memory — this is a
+  single-turn RAG agent, not a chat agent.
+- The web search fallback (`ddgs`) is a best-effort, no-API-key-required
+  choice; swap in Tavily/Serper/Bing in `src/tools/web_search.py` for
+  production-grade fallback quality.
 
 ## License
 
 MIT — see [LICENSE](LICENSE).
-
