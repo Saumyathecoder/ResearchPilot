@@ -1,0 +1,38 @@
+[
+  {
+    "question": "What three structural weaknesses of LLMs does RAG address?",
+    "expected_doc_ids": ["rag_fundamentals"]
+  },
+  {
+    "question": "Why does naive RAG sometimes generate a confident but incorrect answer?",
+    "expected_doc_ids": ["rag_fundamentals"]
+  },
+  {
+    "question": "In Corrective RAG, what three actions can the system take based on the retrieval evaluator's confidence?",
+    "expected_doc_ids": ["corrective_and_self_rag"]
+  },
+  {
+    "question": "What is the difference between groundedness and answer relevance when evaluating a generated response?",
+    "expected_doc_ids": ["corrective_and_self_rag", "agentic_systems_and_evaluation"]
+  },
+  {
+    "question": "What is the difference between dense and sparse retrieval?",
+    "expected_doc_ids": ["embeddings_and_vector_search"]
+  },
+  {
+    "question": "Why does chunk size affect retrieval quality?",
+    "expected_doc_ids": ["embeddings_and_vector_search"]
+  },
+  {
+    "question": "What makes a system 'agentic' as opposed to a single-pass pipeline?",
+    "expected_doc_ids": ["agentic_systems_and_evaluation"]
+  },
+  {
+    "question": "How can LLM-as-judge be used to evaluate a RAG system without labeled ground truth?",
+    "expected_doc_ids": ["agentic_systems_and_evaluation"]
+  },
+  {
+    "question": "What is the best recipe for tiramisu?",
+    "expected_doc_ids": []
+  }
+]
