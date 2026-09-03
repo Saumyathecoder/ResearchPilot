@@ -159,27 +159,6 @@ print(state["trace"])          # every decision the agent made, in order
 print(state["relevant_chunks"]) # the context actually used, with sources
 ```
 
-## Deployment (optional)
-
-The demo runs locally via `streamlit run app.py` (see [Usage](#usage) above).
-It's also set up to deploy for free on
-[Streamlit Community Cloud](https://share.streamlit.io) if you want a public
-link to share — the vector store builds itself automatically on first load,
-so no manual ingestion step is needed after deploying.
-
-1. Push this repo to your own GitHub account (see [Setup](#setup) below if
-   you haven't yet).
-2. Go to [share.streamlit.io](https://share.streamlit.io) and sign in with
-   GitHub.
-3. Click **"New app"**, select this repo, set the main file path to `app.py`.
-4. Before deploying, open **"Advanced settings" → Secrets** and add:
-   ```toml
-   RAG_LLM_PROVIDER = "groq"
-   GROQ_API_KEY = "your-groq-key"
-   ```
-5. Click **Deploy**. First load will take a minute to install dependencies
-   and build the vector store; after that it's fast.
-
 ## Evaluation
 
 `scripts/run_eval.py` runs every question in `data/eval_dataset.json` through
