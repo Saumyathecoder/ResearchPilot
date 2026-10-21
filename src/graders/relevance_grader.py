@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from src.llm_client import complete_json
+from src.llm_client import complete_json, validate_fields
 
 _GRADER_SYSTEM = """You are a strict retrieval grader. Given a user question \
 and a single retrieved passage, decide if the passage contains information \
@@ -31,13 +31,14 @@ class GradedChunk:
 
 def grade_chunk(question: str, chunk: dict) -> GradedChunk:
     prompt = f'Question: "{question}"\n\nRetrieved passage:\n"""{chunk["text"]}"""'
-    result = complete_json(prompt, system=_GRADER_SYSTEM, max_tokens=150)
+    result = complete_json(prompt, system=_GRADER_SYSTEM, max_tokens=150,
+                           validator=lambda r: validate_fields(r, {'relevant': bool, 'reason': str}))
     return GradedChunk(
         chunk_id=chunk["chunk_id"],
         text=chunk["text"],
         metadata={k: v for k, v in chunk.items() if k not in {"chunk_id", "text"}},
-        relevant=bool(result.get("relevant", False)),
-        reason=result.get("reason", ""),
+        relevant=result['relevant'],
+        reason=result['reason'],
     )
 
 

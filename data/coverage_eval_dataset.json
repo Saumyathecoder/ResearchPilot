@@ -1,0 +1,8 @@
+[
+  {"id":"install_complete","question":"What command installs MySQL Server?","passages":["To install MySQL Server, run sudo apt install mysql-server."],"expected_sufficient":true},
+  {"id":"install_partial","question":"What command installs MySQL Server, and which operating system versions are supported?","passages":["To install MySQL Server, run sudo apt install mysql-server."],"expected_sufficient":false},
+  {"id":"crag_complete","question":"What three actions can Corrective RAG take at high, low, and ambiguous confidence?","passages":["At high confidence, Corrective RAG generates using retrieved chunks. At low confidence, it discards them and uses an external source. At ambiguous confidence, it combines retrieved chunks with supplementary web results."],"expected_sufficient":true},
+  {"id":"crag_partial","question":"What three actions can Corrective RAG take at high, low, and ambiguous confidence?","passages":["At high confidence, Corrective RAG generates using retrieved chunks."],"expected_sufficient":false},
+  {"id":"multiple_passages_complete","question":"What color is the return capsule and where does it land?","passages":["The return capsule is cobalt.","The return capsule lands in the desert."],"expected_sufficient":true},
+  {"id":"comparison_partial","question":"What is the difference between groundedness and answer relevance?","passages":["Groundedness means every claim in an answer is supported by the retrieved context."],"expected_sufficient":false}
+]

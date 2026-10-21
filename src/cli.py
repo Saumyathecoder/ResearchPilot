@@ -8,9 +8,11 @@ from __future__ import annotations
 
 import argparse
 import logging
+import sys
 
 from src.agent.graph import run_agent
 from src.config import CONFIG
+from src.llm_client import LLMError
 
 logging.basicConfig(
     level=logging.INFO if CONFIG.verbose else logging.WARNING,
@@ -30,7 +32,7 @@ def _print_result(question: str, state: dict) -> None:
     print()
 
 
-def main() -> None:
+def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("question", nargs="?", help="Question to ask")
     parser.add_argument("--interactive", "-i", action="store_true", help="Start a REPL")
@@ -45,12 +47,20 @@ def main() -> None:
                 break
             if not question or question.lower() in {"quit", "exit"}:
                 break
-            state = run_agent(question)
-            _print_result(question, state)
+            try:
+                state = run_agent(question)
+                _print_result(question, state)
+            except LLMError as exc:
+                print(f"Error: {exc}", file=sys.stderr)
     else:
-        state = run_agent(args.question)
-        _print_result(args.question, state)
+        try:
+            state = run_agent(args.question)
+            _print_result(args.question, state)
+        except LLMError as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            return 1
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

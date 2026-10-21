@@ -5,8 +5,17 @@ __pycache__/
 venv/
 env/
 .env
+.env.*
+!.env.example
+.streamlit/secrets.toml
 chroma_db/
 *.egg-info/
 .DS_Store
 .vscode/
 .idea/
+tmp/
+eval_results/
+uploads/
+docs/RESUME_BULLETS.md
+docs/researchpilot-demo.png
+docs/researchpilot-trace.png

@@ -23,6 +23,7 @@ class Chunk:
     source_path: str
     text: str
     section: str  # nearest preceding heading, for traceability/citations
+    page_number: int | None = None
 
 
 def _split_into_sections(text: str) -> list[tuple[str, str]]:
@@ -32,6 +33,9 @@ def _split_into_sections(text: str) -> list[tuple[str, str]]:
         return [("(no heading)", text)]
 
     sections: list[tuple[str, str]] = []
+    preamble = text[:matches[0].start()].strip()
+    if preamble:
+        sections.append(("(no heading)", preamble))
     for i, match in enumerate(matches):
         heading = match.group().lstrip("#").strip()
         start = match.end()
@@ -96,7 +100,7 @@ def chunk_documents(
 ) -> list[Chunk]:
     """Chunk a list of RawDocuments into overlapping, section-aware Chunks."""
     chunk_size = chunk_size or CONFIG.chunk_size
-    overlap = overlap or CONFIG.chunk_overlap
+    overlap = CONFIG.chunk_overlap if overlap is None else overlap
 
     all_chunks: list[Chunk] = []
     for doc in documents:
@@ -108,11 +112,12 @@ def chunk_documents(
             for piece in packed:
                 all_chunks.append(
                     Chunk(
-                        chunk_id=f"{doc.doc_id}::{chunk_index}",
+                        chunk_id=f"{doc.doc_id}::p{doc.page_number}::{chunk_index}" if doc.page_number else f"{doc.doc_id}::{chunk_index}",
                         doc_id=doc.doc_id,
                         source_path=doc.source_path,
                         text=piece,
                         section=heading,
+                        page_number=doc.page_number,
                     )
                 )
                 chunk_index += 1

@@ -7,7 +7,7 @@ possibly answer (e.g. "what's 2+2" or "who are you").
 """
 from __future__ import annotations
 
-from src.llm_client import complete_json
+from src.llm_client import LLMError, complete_json, validate_fields
 
 _ROUTER_SYSTEM = """You are a routing component in a RAG system. The corpus \
 covers: RAG fundamentals, corrective/self-RAG architectures, embeddings and \
@@ -25,11 +25,14 @@ Respond with ONLY a JSON object: {"route": "retrieve" | "direct" | "out_of_scope
 "reason": "<one short sentence>"}"""
 
 
+def _validate_route(result: dict) -> None:
+    validate_fields(result, {'route': str, 'reason': str})
+    if result['route'] not in {'retrieve', 'direct', 'out_of_scope'}:
+        raise LLMError('invalid_schema', 'The model returned an invalid route. Please try again.', retryable=True)
+
+
 def route_question(question: str) -> dict:
     """Return {"route": ..., "reason": ...}."""
     prompt = f'User question: "{question}"'
-    result = complete_json(prompt, system=_ROUTER_SYSTEM, max_tokens=200)
-    route = result.get("route", "retrieve")
-    if route not in {"retrieve", "direct", "out_of_scope"}:
-        route = "retrieve"
-    return {"route": route, "reason": result.get("reason", "")}
+    result = complete_json(prompt, system=_ROUTER_SYSTEM, max_tokens=200, validator=_validate_route)
+    return {'route': result['route'], 'reason': result['reason']}

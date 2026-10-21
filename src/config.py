@@ -43,6 +43,8 @@ class Config:
         "llama-3.3-70b-versatile" if os.getenv("RAG_LLM_PROVIDER", "groq") == "groq" else "claude-sonnet-4-6",
     )
     llm_max_tokens: int = int(os.getenv("RAG_LLM_MAX_TOKENS", "1024"))
+    llm_timeout_seconds: float = float(os.getenv("RAG_LLM_TIMEOUT_SECONDS", "30"))
+    llm_max_retries: int = int(os.getenv("RAG_LLM_MAX_RETRIES", "1"))
 
     # --- Embeddings ---
     # "tfidf"    -> pure-local, zero downloads, works offline immediately.
@@ -65,6 +67,7 @@ class Config:
     max_query_rewrites: int = int(os.getenv("RAG_MAX_REWRITES", "2"))
     max_generation_retries: int = int(os.getenv("RAG_MAX_GEN_RETRIES", "2"))
     enable_web_fallback: bool = os.getenv("RAG_ENABLE_WEB_FALLBACK", "true").lower() == "true"
+    enable_context_coverage: bool = os.getenv("RAG_ENABLE_CONTEXT_COVERAGE", "true").lower() == "true"
 
     # --- Misc ---
     verbose: bool = os.getenv("RAG_VERBOSE", "true").lower() == "true"

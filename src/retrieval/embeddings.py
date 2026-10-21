@@ -59,8 +59,10 @@ class TfidfEmbedder(BaseEmbedder):
         sparse = self.vectorizer.fit_transform(texts)
         n_components = min(self.n_components, max(2, sparse.shape[1] - 1), sparse.shape[0] - 1)
         n_components = max(n_components, 2)
-        self.svd = self._TruncatedSVD(n_components=n_components, random_state=42)
-        self.svd.fit(sparse)
+        self.svd = None
+        if min(sparse.shape) > 2:
+            self.svd = self._TruncatedSVD(n_components=n_components, random_state=42)
+            self.svd.fit(sparse)
         self._fitted = True
         logger.info("TfidfEmbedder fitted on %d docs, %d SVD components", len(texts), n_components)
 
@@ -68,7 +70,7 @@ class TfidfEmbedder(BaseEmbedder):
         if not self._fitted:
             raise RuntimeError("TfidfEmbedder.fit() must be called before embed().")
         sparse = self.vectorizer.transform(texts)
-        dense = self.svd.transform(sparse)
+        dense = self.svd.transform(sparse) if self.svd is not None else sparse.toarray()
         norms = np.linalg.norm(dense, axis=1, keepdims=True)
         norms[norms == 0] = 1.0
         return (dense / norms).astype("float32")

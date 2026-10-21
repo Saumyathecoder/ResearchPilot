@@ -1,0 +1,12 @@
+[
+  {"question": "How can a chatbot consult new material without updating its learned weights?", "expected_doc_ids": ["rag_fundamentals"]},
+  {"question": "Why might a fluent response be wrong when the fetched evidence does not contain the requested fact?", "expected_doc_ids": ["rag_fundamentals"]},
+  {"question": "When evidence confidence is strong, weak, or uncertain, how should the corrective architecture respond?", "expected_doc_ids": ["corrective_and_self_rag"]},
+  {"question": "Can every statement be backed by evidence while the response still misses what was asked?", "expected_doc_ids": ["corrective_and_self_rag"]},
+  {"question": "Which search approach matches meaning despite different wording, and which favors exact rare terms?", "expected_doc_ids": ["embeddings_and_vector_search"]},
+  {"question": "What goes wrong if a document passage is huge, and what goes wrong if it is tiny?", "expected_doc_ids": ["embeddings_and_vector_search"]},
+  {"question": "How does letting a model choose tools, repeat attempts, and decide when to stop differ from a fixed sequence?", "expected_doc_ids": ["agentic_systems_and_evaluation"]},
+  {"question": "Without human annotations, how could a model assess the evidence and usefulness of another model's response?", "expected_doc_ids": ["agentic_systems_and_evaluation"]},
+  {"question": "What is the current temperature in Vadodara?", "expected_doc_ids": []},
+  {"question": "How do I bake a chocolate cake?", "expected_doc_ids": []}
+]

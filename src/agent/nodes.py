@@ -15,6 +15,8 @@ from src.graders.generation_grader import grade_generation
 from src.graders.query_rewriter import rewrite_query
 from src.graders.relevance_grader import grade_chunks, relevance_ratio
 from src.graders.router import route_question
+from src.graders.coverage_grader import check_context_coverage
+from src.llm_client import LLMError
 from src.retrieval.vectorstore import VectorStore
 from src.tools.web_search import web_search
 from src.agent.state import AgentState
@@ -42,7 +44,8 @@ def _log(state: AgentState, message: str) -> list[str]:
 
 
 def node_route(state: AgentState) -> dict:
-    result = route_question(state["original_question"])
+    result = ({"route": "retrieve", "reason": "Search the selected uploaded documents, regardless of topic."}
+              if state.get("uploaded_corpus") else route_question(state["original_question"]))
     trace = _log(state, f"[route] -> {result['route']} ({result['reason']})")
     return {"route": result["route"], "route_reason": result["reason"], "trace": trace,
             "query": state["original_question"]}
@@ -69,8 +72,8 @@ def node_out_of_scope(state: AgentState) -> dict:
     return {"answer": answer, "trace": trace}
 
 
-def node_retrieve(state: AgentState) -> dict:
-    store = get_vector_store()
+def node_retrieve(state: AgentState, store=None) -> dict:
+    store = store if store is not None else get_vector_store()
     hits = store.similarity_search(state["query"], k=CONFIG.top_k)
     trace = _log(state, f"[retrieve] query='{state['query']}' -> {len(hits)} chunks")
     return {"retrieved": hits, "trace": trace}
@@ -87,10 +90,22 @@ def node_grade_documents(state: AgentState) -> dict:
         f"[grade_documents] {sum(g.relevant for g in graded)}/{len(graded)} relevant "
         f"(ratio={ratio:.2f}, threshold={CONFIG.relevance_threshold})",
     )
+    coverage = None
+    checks = state.get('coverage_check_count', 0)
+    if CONFIG.enable_context_coverage and relevant_chunks and ratio < CONFIG.relevance_threshold:
+        checks += 1
+        try:
+            coverage = check_context_coverage(state['original_question'], relevant_chunks)
+            trace = _log({'trace': trace}, f"[context_coverage] sufficient={coverage['sufficient']}; missing_aspects={len(coverage['missing_aspects'])}")
+        except LLMError:
+            # A failed check must never grant permission to skip retrieval recovery.
+            trace = _log({'trace': trace}, '[context_coverage] unavailable; retaining relevance-ratio policy')
     return {
         "graded": [g.__dict__ for g in graded],
         "relevant_chunks": relevant_chunks,
         "trace": trace,
+        'context_coverage': coverage,
+        'coverage_check_count': checks,
     }
 
 
@@ -109,9 +124,18 @@ def node_web_search(state: AgentState) -> dict:
 
 
 def node_generate(state: AgentState) -> dict:
-    answer = generate_answer(state["original_question"], state.get("relevant_chunks", []))
+    chunks = state.get("relevant_chunks", [])
+    if not chunks:
+        answer = "I don't have relevant context to answer this question reliably."
+        if state.get("uploaded_corpus"):
+            answer += " No relevant passages were found in your uploaded documents. Web search is disabled for uploads."
+        elif state.get("used_web_fallback"):
+            answer += " Local retrieval and web search did not provide usable context."
+        trace = _log(state, "[abstain] no relevant context; skipping generation and self-review")
+        return {"generation": answer, "abstained": True, "trace": trace}
+    answer = generate_answer(state["original_question"], chunks)
     trace = _log(state, "[generate] produced draft answer")
-    return {"generation": answer, "trace": trace}
+    return {"generation": answer, "abstained": False, "trace": trace}
 
 
 def node_grade_generation(state: AgentState) -> dict:

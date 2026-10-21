@@ -1,0 +1,3 @@
+# Optional evaluation/runtime backend; use the existing .venv.
+-r requirements.txt
+sentence-transformers>=3,<6

@@ -27,5 +27,5 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run tests (offline-safe subset: no ANTHROPIC_API_KEY needed)
+      - name: Run offline regression tests
         run: pytest -v

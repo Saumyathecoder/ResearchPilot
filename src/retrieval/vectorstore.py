@@ -58,27 +58,33 @@ class VectorStore:
     def index_chunks(self, chunks: list[Chunk], rebuild: bool = False) -> None:
         """Embed and index a list of chunks. `rebuild=True` wipes any
         existing collection first (use when the corpus changes)."""
+        if not chunks:
+            raise ValueError("Cannot index an empty corpus.")
+        if not rebuild and self.count():
+            raise ValueError("Changing the corpus requires rebuild=True to keep embeddings consistent.")
+        texts = [c.text for c in chunks]
+        embedder = get_embedder()
+        embedder.fit(texts)
+        vectors = embedder.embed(texts)
         if rebuild:
             self.client.delete_collection(self.collection_name)
             self.collection = self.client.get_or_create_collection(
                 name=self.collection_name, metadata={"hnsw:space": "cosine"}
             )
 
-        texts = [c.text for c in chunks]
-        self.embedder = get_embedder()
-        self.embedder.fit(texts)
-        vectors = self.embedder.embed(texts)
-        self._save_embedder()
+        self.embedder = embedder
 
         self.collection.add(
             ids=[c.chunk_id for c in chunks],
             embeddings=vectors.tolist(),
             documents=texts,
             metadatas=[
-                {"doc_id": c.doc_id, "source_path": c.source_path, "section": c.section}
+                {"doc_id": c.doc_id, "source_path": c.source_path, "section": c.section,
+                 **({"page_number": c.page_number} if c.page_number is not None else {})}
                 for c in chunks
             ],
         )
+        self._save_embedder()
         logger.info("Indexed %d chunks into collection '%s'", len(chunks), self.collection_name)
 
     # --- retrieval ---------------------------------------------------------

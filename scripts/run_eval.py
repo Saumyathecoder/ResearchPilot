@@ -2,8 +2,8 @@
 over data/eval_dataset.json. Writes eval_results/results.json and
 eval_results/results.md.
 
-Requires ANTHROPIC_API_KEY to be set (every metric here uses an LLM judge
-or the LLMs inside each pipeline).
+Requires a key for the configured provider. Generation and quality judging
+use live LLM calls; retrieval metrics use expected source-document labels.
 
 Usage:
     python -m scripts.run_eval
@@ -104,7 +104,7 @@ def main() -> None:
         md.append(f"| {label} | {summary['naive'][key]} | {summary['agentic'][key]} |")
     md.append("")
     md.append(
-        "Full per-question results (including generated answers and agent traces) "
+        "Full per-question results (including generated answers and decisions) "
         "are in `eval_results/results.json`."
     )
     (RESULTS_DIR / "results.md").write_text("\n".join(md))

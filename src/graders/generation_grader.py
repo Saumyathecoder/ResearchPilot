@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from src.llm_client import complete_json
+from src.llm_client import LLMError, complete_json, validate_fields
 
 _GROUNDEDNESS_SYSTEM = """You are a strict fact-checker. Given a set of \
 context passages and a generated answer, determine whether the answer's \
@@ -37,6 +37,12 @@ class GenerationVerdict:
         return self.grounded and self.addresses_question
 
 
+def _validate_groundedness(result: dict) -> None:
+    validate_fields(result, {'grounded': bool, 'unsupported_claims': list, 'reason': str})
+    if result['grounded'] and result['unsupported_claims']:
+        raise LLMError('invalid_schema', 'The model returned contradictory grounding checks. Please try again.', retryable=True)
+
+
 def grade_generation(question: str, context_chunks: list[dict], answer: str) -> GenerationVerdict:
     context_block = "\n\n".join(c["text"] for c in context_chunks) or "(no context provided)"
 
@@ -44,17 +50,19 @@ def grade_generation(question: str, context_chunks: list[dict], answer: str) -> 
         f"Context passages:\n\n{context_block}\n\nGenerated answer:\n{answer}",
         system=_GROUNDEDNESS_SYSTEM,
         max_tokens=300,
+        validator=_validate_groundedness,
     )
     relevance_result = complete_json(
         f'Original question: "{question}"\n\nGenerated answer:\n{answer}',
         system=_RELEVANCE_SYSTEM,
         max_tokens=150,
+        validator=lambda r: validate_fields(r, {'addresses_question': bool, 'reason': str}),
     )
 
-    reasons = [grounded_result.get("reason", ""), relevance_result.get("reason", "")]
+    reasons = [grounded_result['reason'], relevance_result['reason']]
     return GenerationVerdict(
-        grounded=bool(grounded_result.get("grounded", False)),
-        addresses_question=bool(relevance_result.get("addresses_question", False)),
-        unsupported_claims=grounded_result.get("unsupported_claims", []) or [],
+        grounded=grounded_result['grounded'],
+        addresses_question=relevance_result['addresses_question'],
+        unsupported_claims=grounded_result['unsupported_claims'],
         reason=" | ".join(r for r in reasons if r),
     )

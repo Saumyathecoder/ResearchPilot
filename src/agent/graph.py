@@ -79,9 +79,11 @@ def _after_grading(state: AgentState) -> str:
     )
     if ratio >= CONFIG.relevance_threshold:
         return "generate"
+    if state.get('relevant_chunks') and (state.get('context_coverage') or {}).get('sufficient') is True:
+        return 'generate'
     if state.get("rewrite_count", 0) < CONFIG.max_query_rewrites:
         return "transform_query"
-    if CONFIG.enable_web_fallback:
+    if CONFIG.enable_web_fallback and not state.get("uploaded_corpus"):
         return "web_search"
     return "generate"  # give up gracefully with whatever (possibly empty) relevant_chunks we have
 
@@ -95,18 +97,24 @@ def _after_generation_grading(state: AgentState) -> str:
     return "finalize_with_caveat"
 
 
+def _after_generation(state: AgentState) -> str:
+    # A deterministic lack-of-evidence refusal is not a generated factual answer.
+    # Never send it through answer-quality retries or invent a passing verdict.
+    return "finalize" if state.get("abstained") else "grade_generation"
+
+
 def _bump_retry(state: AgentState) -> dict:
     return {"generation_retry_count": state.get("generation_retry_count", 0) + 1}
 
 
-def build_graph():
+def build_graph(store=None):
     """Compile and return the agentic RAG graph."""
     graph = StateGraph(AgentState)
 
     graph.add_node("route", node_route)
     graph.add_node("direct", node_direct_answer)
     graph.add_node("out_of_scope", node_out_of_scope)
-    graph.add_node("retrieve", node_retrieve)
+    graph.add_node("retrieve", node_retrieve if store is None else lambda state: node_retrieve(state, store))
     graph.add_node("grade_documents", node_grade_documents)
     graph.add_node("transform_query", node_transform_query)
     graph.add_node("web_search", node_web_search)
@@ -133,7 +141,8 @@ def build_graph():
     graph.add_edge("transform_query", "retrieve")
     graph.add_edge("web_search", "generate")
 
-    graph.add_edge("generate", "grade_generation")
+    graph.add_conditional_edges("generate", _after_generation,
+                                {"finalize": "finalize", "grade_generation": "grade_generation"})
     graph.add_conditional_edges(
         "grade_generation",
         _after_generation_grading,
@@ -150,13 +159,18 @@ def build_graph():
     return graph.compile()
 
 
-def run_agent(question: str) -> AgentState:
+def run_agent(question: str, *, store=None, uploaded_corpus: bool = False) -> AgentState:
     """Convenience entry point: run the full graph for a single question."""
-    app = build_graph()
+    if uploaded_corpus and store is None:
+        raise ValueError("An uploaded corpus requires an explicit session store.")
+    app = build_graph(store)
     initial_state: AgentState = {
         "original_question": question,
+        "uploaded_corpus": uploaded_corpus,
         "rewrite_count": 0,
         "generation_retry_count": 0,
+        "abstained": False,
+        'coverage_check_count': 0,
         "used_web_fallback": False,
         "trace": [],
     }
